@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>서울 기피시설 님비맵</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    :root { --navy:#183153; --blue:#2563eb; --line:#dbe3ee; --muted:#64748b; --bg:#f5f7fb; }
+    * { box-sizing:border-box; }
+    html,body { margin:0; height:100%; font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; color:#172033; }
+    body { display:flex; flex-direction:column; }
+    header { display:flex; align-items:center; gap:16px; padding:14px 22px; border-bottom:1px solid var(--line); background:#fff; }
+    .logo { font-size:30px; }
+    h1 { margin:0; font-size:clamp(19px,2vw,27px); }
+    .subtitle { color:#52627a; margin-left:8px; font-size:14px; }
+    .notice { margin-left:auto; max-width:310px; color:#6b7280; font-size:12px; line-height:1.5; }
+    main { display:grid; grid-template-columns:300px minmax(0,1fr); flex:1; min-height:0; }
+    aside { background:#fff; padding:18px; overflow:auto; border-right:1px solid var(--line); }
+    .search { width:100%; padding:12px 13px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; }
+    h2 { font-size:16px; margin:22px 0 12px; }
+    .category { display:flex; align-items:center; gap:9px; padding:9px 2px; font-size:14px; cursor:pointer; }
+    .category input { width:17px; height:17px; accent-color:var(--blue); }
+    .dot { width:12px; height:12px; border-radius:50%; display:inline-block; flex:0 0 auto; }
+    .count { margin-left:auto; background:#eef2f7; border-radius:20px; padding:3px 8px; color:#52627a; font-size:12px; }
+    .actions { display:flex; justify-content:space-between; align-items:center; color:var(--blue); font-size:12px; margin-top:8px; }
+    button { cursor:pointer; border:1px solid #cbd5e1; background:#fff; border-radius:8px; padding:7px 10px; color:#26354a; }
+    button:hover { background:#f1f5f9; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+    .chip { background:#eef2f7; border-radius:20px; padding:6px 9px; font-size:12px; }
+    #map { min-height:420px; background:#e8edf3; }
+    footer { background:var(--navy); color:#fff; padding:10px 20px; font-size:12px; display:flex; justify-content:space-between; gap:12px; }
+    .leaflet-popup-content { line-height:1.6; min-width:190px; }
+    .popup-title { font-weight:700; font-size:15px; margin-bottom:5px; }
+    .tag { display:inline-block; border-radius:5px; padding:2px 7px; font-size:12px; background:#edf2f7; margin-bottom:7px; }
+    .small { color:var(--muted); font-size:12px; }
+    .empty { font-size:13px; color:var(--muted); line-height:1.6; }
+    @media (max-width:760px) {
+      header { padding:12px 14px; flex-wrap:wrap; gap:7px; }
+      .subtitle { margin-left:0; width:100%; }
+      .notice { display:none; }
+      main { grid-template-columns:1fr; grid-template-rows:auto minmax(420px,1fr); }
+      aside { border-right:0; border-bottom:1px solid var(--line); max-height:42vh; }
+      h2 { margin-top:16px; }
+      footer { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo" aria-hidden="true">📍</span>
+    <h1>서울 기피시설 님비맵</h1>
+    <span class="subtitle">시설 정보를 지도에서 확인하세요.</span>
+    <div class="notice">안내: 현재 포함된 시설은 기능 확인용 예시입니다. 실제 시설 정보로 오인하지 않도록 게시 전 반드시 교체하세요.</div>
+  </header>
+  <main>
+    <aside>
+      <input id="search" class="search" type="search" placeholder="시설명 또는 주소 검색" aria-label="시설명 또는 주소 검색">
+      <div class="actions"><strong style="color:#172033;font-size:16px">시설 분류</strong><button id="toggleAll" type="button">전체 선택/해제</button></div>
+      <div id="categories"></div>
+      <div class="actions" style="border-top:1px solid var(--line);padding-top:14px;margin-top:10px">
+        <strong style="color:#172033">표시 결과 <span id="resultCount">0</span>개</strong>
+        <button id="reset" type="button">초기화</button>
+      </div>
+      <div id="chips" class="chips"></div>
+      <h2>데이터 추가 방법</h2>
+      <p class="empty">아래 코드에서 <code>FACILITIES</code> 배열을 찾아 실제 시설 데이터로 교체하세요. 위도는 <code>lat</code>, 경도는 <code>lng</code>에 입력합니다.</p>
+      <p class="empty"><strong>중요:</strong> 예시 좌표와 시설명은 실제 시설 정보가 아닙니다. 공개 전 반드시 삭제하거나 실제 자료로 교체하세요.</p>
+    </aside>
+    <div id="map" role="application" aria-label="서울 기피시설 지도"></div>
+  </main>
+  <footer>
+    <span><strong>서울 기피시설 님비맵</strong> · 공개 자료를 바탕으로 한 지도 프로젝트</span>
+    <span>지도 © OpenStreetMap contributors · Leaflet</span>
+  </footer>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    // 1) 아래 예시 데이터를 실제로 확보한 시설 데이터로 교체하세요.
+    // category 값은 아래 CATEGORIES 중 하나와 정확히 일치해야 합니다.
+    const CATEGORIES = [
+      { name: "소각시설", color: "#f97316" },
+      { name: "매립시설", color: "#e11d48" },
+      { name: "하수처리시설", color: "#2563eb" },
+      { name: "폐기물처리시설", color: "#15803d" },
+      { name: "축산분뇨처리시설", color: "#9333ea" },
+      { name: "산업시설 (유해물질)", color: "#ca8a04" },
+      { name: "기타 기피시설", color: "#64748b" }
+    ];
+
+    // 데모용 가상 항목입니다. 실제 시설 데이터로 오인하지 마세요.
+    const FACILITIES = [
+      { id: "demo-1", name: "예시 시설 A (가상)", category: "소각시설", lat: 37.5665, lng: 126.9780, address: "서울시청 인근 예시 좌표", operator: "예시 운영주체", capacity: "미입력", year: "미입력", source: "" },
+      { id: "demo-2", name: "예시 시설 B (가상)", category: "하수처리시설", lat: 37.5290, lng: 126.9340, address: "여의도 인근 예시 좌표", operator: "예시 운영주체", capacity: "미입력", year: "미입력", source: "" },
+      { id: "demo-3", name: "예시 시설 C (가상)", category: "폐기물처리시설", lat: 37.6030, lng: 127.0250, address: "성북구 인근 예시 좌표", operator: "예시 운영주체", capacity: "미입력", year: "미입력", source: "" }
+    ];
+
+    const map = L.map("map").setView([37.5665, 126.9780], 11);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>'
+    }).addTo(map);
+
+    const categoryLayer = new Map();
+    const categoryChecks = new Map();
+    const markers = [];
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    })[ch]);
+
+    function makeIcon(color) {
+      return L.divIcon({
+        className: "",
+        html: `<span style="display:block;width:18px;height:18px;border:3px solid white;border-radius:50% 50% 50% 0;background:${color};transform:rotate(-45deg);box-shadow:0 1px 5px #0005"></span>`,
+        iconSize: [18, 18], iconAnchor: [9, 18], popupAnchor: [0, -17]
+      });
+    }
+
+    CATEGORIES.forEach(cat => {
+      const layer = L.layerGroup().addTo(map);
+      categoryLayer.set(cat.name, layer);
+      const row = document.createElement("label");
+      row.className = "category";
+      row.innerHTML = `<input type="checkbox" checked><span class="dot" style="background:${cat.color}"></span><span>${escapeHtml(cat.name)}</span><span class="count" data-count="${escapeHtml(cat.name)}">0</span>`;
+      const checkbox = row.querySelector("input");
+      checkbox.addEventListener("change", () => { updateMap(); updateChips(); });
+      categoryChecks.set(cat.name, checkbox);
+      document.getElementById("categories").appendChild(row);
+    });
+
+    FACILITIES.forEach(f => {
+      if (!categoryLayer.has(f.category) || !Number.isFinite(Number(f.lat)) || !Number.isFinite(Number(f.lng))) return;
+      const cat = CATEGORIES.find(c => c.name === f.category);
+      const details = `
+        <div class="popup-title">${escapeHtml(f.name)}</div>
+        <div class="tag" style="color:${cat.color}">${escapeHtml(f.category)}</div>
+        <div><span class="small">주소</span> · ${escapeHtml(f.address || "미입력")}</div>
+        <div><span class="small">위도/경도</span> · ${Number(f.lat).toFixed(5)}, ${Number(f.lng).toFixed(5)}</div>
+        <div><span class="small">운영주체</span> · ${escapeHtml(f.operator || "미입력")}</div>
+        <div><span class="small">시설용량</span> · ${escapeHtml(f.capacity || "미입력")}</div>
+        <div><span class="small">설치연도</span> · ${escapeHtml(f.year || "미입력")}</div>
+        ${f.source ? `<div><a href="${escapeHtml(f.source)}" target="_blank" rel="noopener">자료 출처 확인</a></div>` : ""}
+      `;
+      const marker = L.marker([Number(f.lat), Number(f.lng)], { icon: makeIcon(cat.color) })
+        .bindPopup(details);
+      marker._facility = f;
+      marker._category = f.category;
+      marker._searchText = `${f.name} ${f.address || ""} ${f.category}`.toLocaleLowerCase("ko");
+      markers.push(marker);
+      marker.addTo(categoryLayer.get(f.category));
+    });
+
+    function updateMap() {
+      const query = document.getElementById("search").value.trim().toLocaleLowerCase("ko");
+      let visible = 0;
+      const counts = Object.fromEntries(CATEGORIES.map(c => [c.name, 0]));
+      markers.forEach(marker => {
+        const f = marker._facility;
+        const checked = categoryChecks.get(f.category)?.checked;
+        const matches = !query || marker._searchText.includes(query);
+        const show = Boolean(checked && matches);
+        const layer = categoryLayer.get(f.category);
+        if (show) {
+          if (!layer.hasLayer(marker)) layer.addLayer(marker);
+          visible++;
+          counts[f.category]++;
+        } else if (layer.hasLayer(marker)) layer.removeLayer(marker);
+      });
+      document.getElementById("resultCount").textContent = visible;
+      document.querySelectorAll("[data-count]").forEach(el => el.textContent = counts[el.dataset.count] || 0);
+    }
+
+    function updateChips() {
+      const selected = CATEGORIES.filter(c => categoryChecks.get(c.name).checked);
+      document.getElementById("chips").innerHTML = selected.length
+        ? selected.map(c => `<span class="chip"><span class="dot" style="background:${c.color};width:8px;height:8px;margin-right:5px"></span>${escapeHtml(c.name)}</span>`).join("")
+        : '<span class="empty">선택된 분류가 없습니다.</span>';
+    }
+
+    document.getElementById("search").addEventListener("input", updateMap);
+    document.getElementById("toggleAll").addEventListener("click", () => {
+      const allChecked = CATEGORIES.every(c => categoryChecks.get(c.name).checked);
+      CATEGORIES.forEach(c => categoryChecks.get(c.name).checked = !allChecked);
+      updateMap(); updateChips();
+    });
+    document.getElementById("reset").addEventListener("click", () => {
+      document.getElementById("search").value = "";
+      CATEGORIES.forEach(c => categoryChecks.get(c.name).checked = true);
+      updateMap(); updateChips();
+      map.setView([37.5665, 126.9780], 11);
+    });
+
+    updateMap();
+    updateChips();
+  </script>
+</body>
+</html>
