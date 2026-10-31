@@ -1,0 +1,181 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>별별지도 | 서울 다양한 시설 지도</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f6f8;
+      color: #222;
+    }
+
+    header {
+      background: #242424;
+      color: white;
+      padding: 18px 24px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 25px;
+    }
+
+    header p {
+      margin: 7px 0 0;
+      color: #ccc;
+      font-size: 13px;
+    }
+
+    .container {
+      display: flex;
+      min-height: calc(100vh - 75px);
+    }
+
+    aside {
+      width: 300px;
+      flex-shrink: 0;
+      background: white;
+      padding: 20px;
+      border-right: 1px solid #ddd;
+    }
+
+    aside h2 {
+      font-size: 17px;
+      margin-top: 0;
+    }
+
+    .search {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 7px;
+      font-size: 14px;
+    }
+
+    .category {
+      margin-top: 22px;
+    }
+
+    .category label {
+      display: block;
+      padding: 9px 0;
+      font-size: 14px;
+    }
+
+    .map-area {
+      flex: 1;
+      min-width: 0;
+      padding: 15px;
+    }
+
+    #map {
+      width: 100%;
+      height: calc(100vh - 105px);
+      min-height: 450px;
+      border-radius: 10px;
+      background: #e9edf0;
+    }
+
+    @media (max-width: 700px) {
+      .container {
+        flex-direction: column;
+      }
+
+      aside {
+        width: 100%;
+        border-right: 0;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .category {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .category label {
+        padding: 4px 0;
+      }
+
+      .map-area {
+        padding: 8px;
+      }
+
+      #map {
+        height: 65vh;
+        min-height: 400px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>별별지도</h1>
+  <p>서울의 다양한 시설을 한눈에</p>
+</header>
+
+<div class="container">
+
+  <aside>
+    <h2>시설 검색</h2>
+    <input
+      class="search"
+      type="text"
+      placeholder="시설명 또는 주소 검색"
+      disabled
+    >
+
+    <div class="category">
+      <h2>시설 분류</h2>
+      <label>☑ 폐기물 처리시설</label>
+      <label>☑ 하수·분뇨 처리시설</label>
+      <label>☑ 장례·화장시설</label>
+      <label>☑ 교정시설</label>
+      <label>☑ 발전시설</label>
+      <label>☑ 기타 기피시설</label>
+    </div>
+  </aside>
+
+  <main class="map-area">
+    <div id="map"></div>
+  </main>
+
+</div>
+
+<!-- 카카오 지도 API -->
+<script
+  src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=df67052ab2ca81d7a46695baeb510a95">
+</script>
+
+<script>
+  const mapContainer = document.getElementById('map');
+
+  const mapOption = {
+    center: new kakao.maps.LatLng(37.5665, 126.9780),
+    level: 8
+  };
+
+  const map = new kakao.maps.Map(mapContainer, mapOption);
+
+  // 지도 확대·축소 컨트롤
+  const zoomControl = new kakao.maps.ZoomControl();
+
+  map.addControl(
+    zoomControl,
+    kakao.maps.ControlPosition.RIGHT
+  );
+</script>
+
+</body>
+</html>
